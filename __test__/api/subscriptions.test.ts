@@ -11,13 +11,15 @@ async function seedSubscription() {
 
   const product = await prisma.product.create({
     data: {
-      name: "Test Gadget",
-      imageUrl: "/products/test.png",
+      slug: "test-gadget",
+      title: "Test Gadget",
+      coreAttribute: "Test core attribute",
+      image: "/products/test.png",
       rentalPlans: {
         create: [
-          { months: 1, priceCents: 1000 },
-          { months: 3, priceCents: 2500 },
-          { months: 6, priceCents: 4500 }
+          { period: 1, price: 1000 },
+          { period: 3, price: 2500 },
+          { period: 6, price: 4500 }
         ]
       }
     }
@@ -26,7 +28,10 @@ async function seedSubscription() {
   const subscription = await prisma.subscription.create({
     data: {
       state: "ACTIVE",
-      rentalPeriodMonths: 3,
+      referenceId: "G-TEST-3M",
+      rentalPeriod: 3,
+      monthlyPrice: 2500,
+      activatedAt: new Date("2025-01-15T00:00:00.000Z"),
       activeUntil: new Date("2025-01-15T00:00:00.000Z"),
       productId: product.id
     }
@@ -50,7 +55,7 @@ describe("PATCH /api/subscriptions/[sid]", () => {
     const { req, res } = createMocks({
       method: "PATCH",
       query: { sid: String(subscription.id) },
-      body: { newRentalPeriodMonths: 6 }
+      body: { newRentalPeriod: 6 }
     });
 
     await handler(req, res);
@@ -58,7 +63,7 @@ describe("PATCH /api/subscriptions/[sid]", () => {
     expect(res._getStatusCode()).toBe(200);
 
     const payload = res._getJSONData();
-    expect(payload.subscription.rentalPeriodMonths).toBe(6);
+    expect(payload.subscription.rentalPeriod).toBe(6);
     expect(payload.subscription.activeUntil).toBe(addMonths(new Date("2025-01-15T00:00:00.000Z"), 6).toISOString());
   });
 
@@ -68,7 +73,7 @@ describe("PATCH /api/subscriptions/[sid]", () => {
     const { req, res } = createMocks({
       method: "PATCH",
       query: { sid: String(subscription.id) },
-      body: { newRentalPeriodMonths: 3 }
+      body: { newRentalPeriod: 3 }
     });
 
     await handler(req, res);

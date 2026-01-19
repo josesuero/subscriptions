@@ -18,5 +18,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     orderBy: { createdAt: "desc" }
   });
 
-  return res.status(200).json({ subscriptions });
+  return res.status(200).json(subscriptions);
 }

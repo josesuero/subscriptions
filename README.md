@@ -1,4 +1,4 @@
-# Grover Subscription Extension Interview Starter
+# Subscription Extension Starter
 
 This is a **starter** project for a live coding interview. The app runs, the UI renders, and the API routes exist, but the key business logic is intentionally **incomplete**.
 
@@ -21,8 +21,8 @@ Implement subscription extension logic end-to-end:
 
 ## Business rules (to implement)
 - Only `ACTIVE` subscriptions can be extended.
-- `newRentalPeriodMonths` must be greater than the current rental period.
-- `newRentalPeriodMonths` must exist in the product rental plans.
+- `newRentalPeriod` must be greater than the current rental period.
+- `newRentalPeriod` must exist in the product rental plans.
 - `activeUntil` must be extended using `date-fns` `addMonths`.
 
 ## Getting started

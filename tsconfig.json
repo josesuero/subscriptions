@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2020"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -12,8 +16,20 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "types": ["vitest/globals", "node"]
+    "types": [
+      "vitest/globals",
+      "node"
+    ],
+    "incremental": true,
+    "esModuleInterop": true
   },
-  "include": ["next-env.d.ts", "src", "__test__", "prisma"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "__test__",
+    "prisma"
+, "prisma.config.ts"  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

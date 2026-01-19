@@ -11,7 +11,7 @@ const Accent = styled.span`
   color: #ff6f3c;
 `;
 
-export function GroverLogo() {
+export function CompanyLogo() {
   return (
     <Logo>
       Grover<Accent>+</Accent>

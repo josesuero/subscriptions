@@ -3,7 +3,7 @@ import Head from "next/head";
 import styled from "styled-components";
 import { SubscriptionCard, type Subscription } from "../components/SubscriptionCard";
 import { SubscriptionWrapper } from "../components/SubscriptionWrapper";
-import { GroverLogo } from "../components/GroverLogo";
+import { CompanyLogo } from "../components/CompanyLogo";
 import { fetchJson } from "../lib/fetch";
 
 const Header = styled.header`
@@ -40,10 +40,6 @@ const Status = styled.p`
   color: #4a4a4a;
 `;
 
-type SubscriptionResponse = {
-  subscriptions: Subscription[];
-};
-
 export default function HomePage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,10 +47,10 @@ export default function HomePage() {
 
   useEffect(() => {
     let mounted = true;
-    fetchJson<SubscriptionResponse>("/api/subscriptions")
+    fetchJson<Subscription[]>("/api/subscriptions")
       .then((data) => {
         if (!mounted) return;
-        setSubscriptions(data.subscriptions);
+        setSubscriptions(data);
       })
       .catch((err) => {
         if (!mounted) return;
@@ -73,12 +69,12 @@ export default function HomePage() {
   return (
     <SubscriptionWrapper>
       <Head>
-        <title>Grover Subscriptions</title>
+        <title>Subscriptions</title>
       </Head>
 
       <Header>
         <Headline>
-          <GroverLogo />
+          <CompanyLogo />
           <Title>Subscription Extensions</Title>
           <Subtitle>
             Review active subscriptions and extend rental periods. Core business rules are

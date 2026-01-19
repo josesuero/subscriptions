@@ -2,20 +2,19 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../lib/prisma";
 
 type PatchBody = {
-  newRentalPeriodMonths?: number;
+  newRentalPeriod?: number;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const sid = Array.isArray(req.query.sid) ? req.query.sid[0] : req.query.sid;
-  const subscriptionId = Number(sid);
 
-  if (!sid || Number.isNaN(subscriptionId)) {
+  if (!sid) {
     return res.status(400).json({ message: "Invalid subscription id" });
   }
 
   if (req.method === "GET") {
     const subscription = await prisma.subscription.findUnique({
-      where: { id: subscriptionId },
+      where: { id: sid },
       include: {
         product: {
           include: { rentalPlans: true }
@@ -32,17 +31,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "PATCH") {
     const body = typeof req.body === "string" ? (JSON.parse(req.body) as PatchBody) : (req.body as PatchBody);
-    const newRentalPeriodMonths = Number(body?.newRentalPeriodMonths);
+    const newRentalPeriod = Number(body?.newRentalPeriod);
 
-    if (!Number.isFinite(newRentalPeriodMonths)) {
-      return res.status(400).json({ message: "newRentalPeriodMonths must be a number" });
+    if (!Number.isFinite(newRentalPeriod)) {
+      return res.status(400).json({ message: "newRentalPeriod must be a number" });
     }
 
     // TODO: Implement extension logic.
     // Business rules to implement:
     // - Only ACTIVE subscriptions can be extended.
-    // - newRentalPeriodMonths must be greater than the current rentalPeriodMonths.
-    // - newRentalPeriodMonths must exist in the product rentalPlans.
+    // - newRentalPeriod must be greater than the current rentalPeriod.
+    // - newRentalPeriod must exist in the product rentalPlans.
     // - activeUntil must be extended using date-fns (addMonths).
 
     return res.status(501).json({ message: "Not Implemented" });

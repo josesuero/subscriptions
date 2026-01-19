@@ -1,0 +1,43 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum SubscriptionState {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+model Product {
+  id            Int             @id @default(autoincrement())
+  name          String
+  imageUrl      String
+  rentalPlans   RentalPlan[]
+  subscriptions Subscription[]
+  createdAt     DateTime        @default(now())
+}
+
+model RentalPlan {
+  id        Int     @id @default(autoincrement())
+  months    Int
+  priceCents Int
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([productId, months])
+}
+
+model Subscription {
+  id                 Int               @id @default(autoincrement())
+  state              SubscriptionState
+  rentalPeriodMonths Int
+  activeUntil        DateTime
+  productId          Int
+  product            Product           @relation(fields: [productId], references: [id])
+  createdAt          DateTime          @default(now())
+}

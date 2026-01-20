@@ -22,3 +22,15 @@ export async function fetchJson<T>(url: string, options: FetchJsonOptions = {}):
 
   return (await response.json()) as T;
 }
+
+export async function postJson<T>(
+  url: string,
+  body: unknown,
+  options: FetchJsonOptions = {}
+): Promise<T> {
+  return fetchJson<T>(url, {
+    ...options,
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}

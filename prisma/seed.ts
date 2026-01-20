@@ -1,11 +1,12 @@
-import { PrismaClient, SubscriptionState } from "../src/generated/prisma/client";
+import { PrismaClient } from "../src/generated/prisma";
+import { SubscriptionState } from "../src/models/models";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { addMonths, subMonths } from "date-fns";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL!,
-});
-const prisma = new PrismaClient({ adapter });
+// const adapter = new PrismaBetterSqlite3({
+//   url: process.env.DATABASE_URL!,
+// });
+const prisma = new PrismaClient();
 
 async function main() {
   await prisma.subscription.deleteMany();

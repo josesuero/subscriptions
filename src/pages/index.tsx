@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import styled from "styled-components";
 import { SubscriptionCard, type Subscription } from "../components/SubscriptionCard";
 import { SubscriptionWrapper } from "../components/SubscriptionWrapper";
 import { CompanyLogo } from "../components/CompanyLogo";
 import { fetchJson } from "../lib/fetch";
+import { SubscrpitionPages } from "../models/models";
+import { Button } from "../components/Button";
 
 const Header = styled.header`
   display: flex;
@@ -32,7 +34,7 @@ const Subtitle = styled.p`
 
 const Grid = styled.div`
   display: grid;
-  gap: 24px;
+  gap: 12px;
 `;
 
 const Status = styled.p`
@@ -40,31 +42,64 @@ const Status = styled.p`
   color: #4a4a4a;
 `;
 
+const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+`;
+
+const PageInfo = styled.span`
+  color: #4a4a4a;
+  font-size: 14px;
+`;
+
+
 export default function HomePage() {
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [data, setData] = useState<SubscrpitionPages>({ items: [], page: 1, limit: 2, total: 0, totalPages: 0 });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  let mounted = false;
+
+  const loadSubscriptions = async (nextPage = page) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      var res = await fetchJson<SubscrpitionPages>(
+        `/api/subscriptions?page=${nextPage}&limit=${data.limit}`
+      );
+      // if (!mounted) return;
+      setData(res);
+
+    } catch (err) {
+      if (!mounted) return;
+      setError(err instanceof Error ? err.message : "Failed to load subscriptions");
+    }
+
+    if (!mounted) return;
+    setLoading(false);
+  }
+
+
   useEffect(() => {
-    let mounted = true;
-    fetchJson<Subscription[]>("/api/subscriptions")
-      .then((data) => {
-        if (!mounted) return;
-        setSubscriptions(data);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err instanceof Error ? err.message : "Failed to load subscriptions");
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
+    console.log("reloading subscriptions..." + page);
+    mounted = true;
+    const run = async () => {
+      await loadSubscriptions(page);
+    };
+    void run();
+
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [page]);
+
+  console.log(data)
 
   return (
     <SubscriptionWrapper>
@@ -87,10 +122,30 @@ export default function HomePage() {
       {error && <Status>{error}</Status>}
 
       <Grid>
-        {subscriptions.map((subscription) => (
-          <SubscriptionCard key={subscription.id} subscription={subscription} />
+        {data.items.map((subscription) => (
+          <SubscriptionCard key={subscription.id} subscription={subscription} onExtended={() => loadSubscriptions(page)} />
         ))}
       </Grid>
+
+      {data.totalPages > 1 && (
+        <PaginationBar>
+          <Button
+            variant="ghost"
+            disabled={loading || page <= 1}
+            onClick={() => setPage(Math.max(1, page - 1))}
+          >Previous</Button>
+
+          <PageInfo>
+            Page {page} of {data.totalPages}
+          </PageInfo>
+
+          <Button
+            variant="ghost"
+            disabled={loading || page >= data.totalPages}
+            onClick={() => setPage(Math.min(data.totalPages, page + 1))}
+          >Next</Button>
+        </PaginationBar>
+      )}
     </SubscriptionWrapper>
   );
 }

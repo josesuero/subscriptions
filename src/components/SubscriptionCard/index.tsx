@@ -3,39 +3,34 @@ import styled from "styled-components";
 import { formatCurrency } from "../../lib/currency";
 import { imageOptimizedUrl } from "../../lib/imageOptimizedUrl";
 import { Button } from "../Button";
+import SimpleModal from "../SimpleModal";
 
-// const Card = styled.section`
-//   background: #ffffff;
-//   border: 1px solid #ececec;
-//   border-radius: 10px;
-//   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
-//   padding: 24px;
-
-//   display: grid;
-//   grid-template-columns: 96px minmax(0, 1fr);
-//   column-gap: 18px;
-//   row-gap: 10px;
-//   align-items: start;
-
-//   /* Give it that “centered card on page” feel if parent doesn’t constrain */
-//   max-width: 880px;
-//   width: 100%;
-// `;
-
-const Card = styled.section`
+const Card = styled.section<{ $disabled?: boolean }>`
   background: #ffffff;
   border: 1px solid #ececec;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
-  padding: 28px 24px;
+  padding:24px;
 
-  display: flex;
-  flex-direction: column;
-  align-items: left;
-  gap: 14px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  column-gap: 18px;
+  row-gap: 10px;
+  align-items: start;
 
-  max-width: 420px;
+  max-width: 880px;
   width: 100%;
+
+  transition: opacity 120ms ease, filter 120ms ease;
+
+  ${({ $disabled }) =>
+    $disabled &&
+    `
+    opacity: 0.55;
+    filter: grayscale(1);
+    pointer-events: none;
+  `}
+  
 `;
 const ProductImage = styled.div`
   width: 96px;
@@ -57,7 +52,8 @@ const ProductImage = styled.div`
 `;
 
 const ProductInfo = styled.div`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   min-width: 0;
 `;
@@ -111,8 +107,8 @@ const StatusPill = styled.span<{ $state: string }>`
 const ExtendPanel = styled.div`
   /* Move button under the meta like the screenshot */
   grid-column: 2;
-  display: flex;
-  align-items: center;
+  display: grid;
+  align-items: start;
   gap: 12px;
   margin-top: 6px;
 
@@ -121,16 +117,17 @@ const ExtendPanel = styled.div`
   border-radius: 0;
   padding: 0;
 
-  label {
-    display: none; /* starting point doesn’t show a label */
-  }
+
 `;
 
 const Select = styled.select`
   /* Starting point has NO dropdown — hide it for now */
-  display: none;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 200px;
 `;
-
 
 export type RentalPlan = {
   id: string;
@@ -165,10 +162,70 @@ export type Subscription = {
 
 type SubscriptionCardProps = {
   subscription: Subscription;
+  onExtended?: () => Promise<void> | undefined;
 };
 
-export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+type ProductDetailsProps = {
+  subscription: Subscription;
+  isEnded: boolean;
+  isDisabled: boolean;
+  onExtended?: () => Promise<void> | undefined;
+};
+
+type handleExtendProps = {
+  subscription: Subscription,
+  selectedPlan: RentalPlan | undefined,
+  setIsOpen: (isOpen: boolean) => void,
+  isSubmitting: boolean,
+  setIsSubmitting: (isSubmitting: boolean) => void
+  onExtended?: () => Promise<void> | undefined
+};
+
+function useExtendSubscription(subscrption: Subscription, onExtended?: () => Promise<void> | undefined) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const extendSubscription = async (selectedPlan: RentalPlan | undefined) => {
+    if (!selectedPlan || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await fetch(`/api/subscriptions/${subscrption.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newRentalPeriod: selectedPlan.period }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to extend subscription");
+      }
+
+      setIsOpen(false);
+      await onExtended?.();
+      alert("Subscription extended successfully!");
+    } catch (error) {
+      console.error("Error extending subscription:", error);
+      alert("Error extending subscription: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return {
+    isOpen,
+    openModal: () => setIsOpen(true),
+    closeModal: () => setIsOpen(false),
+    isSubmitting,
+    extendSubscription
+  }
+}
+
+function ProductDetails({ subscription, isEnded, isDisabled, onExtended }: ProductDetailsProps) {
   const [selectedMonths, setSelectedMonths] = useState(subscription.rentalPeriod);
+
 
   const currentPlan = useMemo(() => {
     return subscription.product.rentalPlans.find(
@@ -176,43 +233,47 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
     );
   }, [subscription.product.rentalPlans, subscription.rentalPeriod]);
 
-  const handleExtend = () => {
-    // TODO: Wire up API call + optimistic UI update for subscription extension.
-    alert("TODO: implement subscription extension");
-  };
+  const selectedPlan = useMemo(() => {
+    return subscription.product.rentalPlans.find(
+      (plan) => plan.period === selectedMonths
+    );
+  }, [subscription.product.rentalPlans, selectedMonths]);
+
+  const {
+    isOpen,
+    openModal,
+    closeModal,
+    isSubmitting,
+    extendSubscription
+  } = useExtendSubscription(subscription, onExtended);
+
+  if (isDisabled) {
+    return <small style={{ color: "#777" }}>
+      {isEnded
+        ? "Subscription has ended"
+        : "Maximum rental period reached"}
+    </small>
+  }
 
   return (
-    <Card >
-      <ProductImage>
-        <img
-          src={imageOptimizedUrl(subscription.product.image)}
-          alt={subscription.product.title}
-          width={140}
-          height={105}
-          style={{ objectFit: "cover", borderRadius: 12 }}
-        />
-      </ProductImage>
-      <ProductInfo>
-        <ProductName>{subscription.product.title}</ProductName>
-        <Meta>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <StatusPill $state={subscription.state}>
-              {subscription.state === "ACTIVE" ? "Active" : subscription.state}
-            </StatusPill>
-            <span style={{ color: "#9a9a9a" }}>•</span>
-            <span>until {new Date(subscription.activeUntil).toLocaleDateString()}</span>
-          </div>
+    <>
+      <Meta>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <StatusPill $state={subscription.state}>
+            {subscription.state === "ACTIVE" ? "Active" : subscription.state}
+          </StatusPill>
+          <span style={{ color: "#9a9a9a" }}>•</span>
+          <span>until {new Date(subscription.activeUntil).toLocaleDateString()}</span>
+        </div>
 
-          <div style={{ color: "#111", fontWeight: 500 }}>
-            {currentPlan || subscription.monthlyPrice
-              ? `${formatCurrency(currentPlan?.price ?? subscription.monthlyPrice)} per month`
-              : ""}
-          </div>
-        </Meta>
-
-      </ProductInfo>
+        <div style={{ color: "#111", fontWeight: 500 }}>
+          {currentPlan || subscription.monthlyPrice
+            ? `${formatCurrency(currentPlan?.price ?? subscription.monthlyPrice)} per month`
+            : ""}
+        </div>
+      </Meta>
       <ExtendPanel>
-        <label htmlFor={`extend-${subscription.id}`}>Extend subscription</label>
+        <label htmlFor={`extend-${subscription.id}`}>Extend rental</label>
         <Select
           id={`extend-${subscription.id}`}
           value={selectedMonths}
@@ -227,8 +288,62 @@ export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
               </option>
             ))}
         </Select>
-        <Button onClick={handleExtend}>Extend rental</Button>
+        {selectedPlan && selectedPlan?.period <= subscription.rentalPeriod ? (
+          <small style={{ color: "#777" }}>
+            Please select a longer rental period to extend your subscription.
+          </small>
+        ) : (
+          <Button onClick={() => openModal()}>Extend rental to {selectedPlan?.period} months for {selectedPlan?.price ? formatCurrency(selectedPlan.price) : "N/A"}</Button>
+        )
+        }
       </ExtendPanel>
-    </Card>
+      {isOpen && (
+        <SimpleModal isOpen={isOpen} onClose={() => closeModal()}>
+          <h3>Extend subscription</h3>
+          <p>Are you sure you want to extend?</p>
+          <p>
+            <b>{subscription.product.title}</b> to {selectedPlan?.period} months for {selectedPlan?.price ? formatCurrency(selectedPlan.price) : "N/A"}.
+          </p>
+          <p></p>
+          <Button onClick={() => closeModal()}>Cancel</Button>
+          <Button disabled={isSubmitting} onClick={
+            () => extendSubscription(selectedPlan)
+          }
+          >
+            {isSubmitting ? "Processing..." : "Confirm"}
+          </Button>
+        </SimpleModal>
+      )}
+    </>
   );
 }
+
+export function SubscriptionCard({ subscription, onExtended }: SubscriptionCardProps) {
+
+  const isEnded = subscription.state === "TERMINATED" || new Date(subscription.activeUntil) < new Date();
+
+  const hasExtensionOptions = subscription.product.rentalPlans.some(
+    (plan) => plan.period > subscription.rentalPeriod
+  );
+
+  const isDisabled = isEnded || !hasExtensionOptions;
+
+  return (
+    <Card $disabled={isDisabled}>
+      <ProductImage>
+        <img
+          src={imageOptimizedUrl(subscription.product.image)}
+          alt={subscription.product.title}
+          width={140}
+          height={105}
+          style={{ objectFit: "cover", borderRadius: 12 }}
+        />
+      </ProductImage>
+      <ProductInfo>
+        <ProductName>{subscription.product.title}</ProductName>
+        <ProductDetails subscription={subscription} isDisabled={isDisabled} isEnded={isEnded} onExtended={onExtended} />
+      </ProductInfo>
+    </Card >
+  );
+}
+
